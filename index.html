@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Colaborativo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        /* Estilos generales con enfoque retro años 2000 */
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #FDF1DD;
+            /* Color base fondo */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 800px;
+            margin: 0 auto;
+            border-left: 4px solid #DDD7C5;
+            border-right: 4px solid #DDD7C5;
+            letter-spacing: 1px;
+            font-size: 18px;
+            image-rendering: pixelated;
+        }
+
+        /* Borde pixel art */
+        .pixel-border {
+            box-shadow:
+                -4px 0 0 0 #DDD7C5,
+                4px 0 0 0 #DDD7C5,
+                0 -4px 0 0 #DDD7C5,
+                0 4px 0 0 #DDD7C5;
+        }
+
+        .header {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #33595E;
+            /* Verde oscuro para header */
+            color: #FBF1DC;
+            text-align: center;
+            padding: 15px;
+            font-size: 16px;
+            text-shadow: 2px 2px 0px #373B41;
+            border-bottom: 4px solid #373B41;
+        }
+
+        .connection-status {
+            background-color: #FBF1DC;
+            /* Color claro para estado */
+            padding: 5px 10px;
+            text-align: center;
+            border-bottom: 4px solid #DDD7C5;
+            font-size: 16px;
+            color: #373B41;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #FDF1DD;
+            /* Fondo liso sin cuadrículas */
+        }
+
+        .message {
+            margin-bottom: 15px;
+            word-wrap: break-word;
+        }
+
+        .message .header {
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            padding: 0;
+            border: none;
+            text-align: left;
+            font-size: 16px;
+            font-family: 'VT323', monospace;
+            margin-bottom: 2px;
+            text-shadow: none;
+        }
+
+        .message .content {
+            background-color: #FBF1DC;
+            /* Color para mensajes */
+            padding: 10px 15px;
+            display: inline-block;
+            max-width: 80%;
+            color: #373B41;
+            box-shadow: 3px 3px 0px #DDD7C5;
+            border: 2px solid #DDD7C5;
+            position: relative;
+        }
+
+        /* Bordes tipo pixel */
+        .message .content::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 12px;
+            width: 10px;
+            height: 10px;
+            background-color: #FBF1DC;
+            border-right: 2px solid #DDD7C5;
+            border-bottom: 2px solid #DDD7C5;
+            transform: rotate(45deg);
+        }
+
+        .message .timestamp {
+            font-size: 14px;
+            color: #373B41;
+            margin-left: 5px;
+            font-style: italic;
+        }
+
+        .my-message {
+            text-align: right;
+        }
+
+        .my-message .content {
+            background-color: #33595E;
+            /* Verde oscuro para mis mensajes */
+            color: #FBF1DC;
+            text-align: left;
+            box-shadow: 3px 3px 0px #373B41;
+            border: 2px solid #373B41;
+        }
+
+        .my-message .content::after {
+            left: auto;
+            right: 12px;
+            background-color: #33595E;
+            border-left: 2px solid #373B41;
+            border-right: none;
+            border-bottom: 2px solid #373B41;
+        }
+
+        .system-message {
+            text-align: center;
+            margin: 15px 0;
+            color: #373B41;
+            font-size: 14px;
+            padding: 5px 10px;
+            background-color: rgba(251, 241, 220, 0.8);
+            border: 2px dashed #DDD7C5;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 12px;
+            border-top: 4px solid #DDD7C5;
+            background-color: #FBF1DC;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 10px;
+            border: 3px solid #DDD7C5;
+            background-color: #FDF1DD;
+            margin-right: 10px;
+            font-size: 16px;
+            font-family: 'VT323', monospace;
+            box-shadow: 2px 2px 0px #DDD7C5;
+            color: #373B41;
+        }
+
+        #send-button {
+            background-color: #33595E;
+            color: #FBF1DC;
+            border: none;
+            padding: 0 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            box-shadow: 3px 3px 0px #373B41;
+            transition: all 0.1s;
+            border: 2px solid #373B41;
+        }
+
+        #send-button:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0px #373B41;
+        }
+
+        #send-button:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .username-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(253, 241, 221, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .username-form {
+            background-color: #FBF1DC;
+            padding: 25px;
+            width: 340px;
+            text-align: center;
+            border: 4px solid #DDD7C5;
+            box-shadow: 6px 6px 0px #373B41;
+        }
+
+        .username-form h2 {
+            margin-top: 0;
+            color: #33595E;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0px #373B41;
+        }
+
+        .username-form p {
+            margin-bottom: 20px;
+            color: #373B41;
+        }
+
+        .username-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 3px solid #DDD7C5;
+            box-sizing: border-box;
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            box-shadow: 3px 3px 0px #DDD7C5;
+            background-color: #FDF1DD;
+            color: #373B41;
+        }
+
+        .username-form button {
+            background-color: #33595E;
+            color: #FBF1DC;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            margin-top: 10px;
+            box-shadow: 3px 3px 0px #373B41;
+            border: 2px solid #373B41;
+        }
+
+        .username-form button:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0px #373B41;
+        }
+
+        .typing-indicator {
+            font-size: 14px;
+            color: #373B41;
+            font-style: italic;
+            margin-bottom: 5px;
+            height: 16px;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Modal para nombre de usuario -->
+    <div class="username-modal" id="username-modal">
+        <div class="username-form">
+            <h2>CHAT COLABORATIVO</h2>
+            <p>Ingresa un nombre de usuario para comenzar</p>
+            <input type="text" id="username-input" placeholder="Tu nombre">
+            <button id="join-button">► COMENZAR</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">CHAT RETRO MESSENGER</div>
+
+    <!-- Estado de conexión -->
+    <div class="connection-status" id="connection-status">Conectando...</div>
+
+    <!-- Contenedor de mensajes -->
+    <div class="chat-container" id="chat-container"></div>
+
+    <!-- Área de escritura -->
+    <div class="typing-indicator" id="typing-indicator"></div>
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="Escribe un mensaje..." disabled>
+        <button id="send-button" disabled>Enviar</button>
+    </div>
+
+    <script>
+        // Elementos del DOM
+        const usernameModal = document.getElementById('username-modal');
+        const usernameInput = document.getElementById('username-input');
+        const joinButton = document.getElementById('join-button');
+        const connectionStatus = document.getElementById('connection-status');
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // Variables
+        let socket;
+        let username = '';
+        let isConnected = false;
+
+        // Función para iniciar conexión WebSocket
+        function connectWebSocket(username) {
+            // Crear conexión WebSocket
+            socket = new WebSocket('ws://localhost:8765');
+
+            // Evento de apertura de conexión
+            socket.onopen = function (event) {
+                isConnected = true;
+                connectionStatus.textContent = 'Conectado al servidor';
+                connectionStatus.style.backgroundColor = '#FBF1DC';
+
+                // Enviar nombre de usuario al servidor
+                const message = {
+                    username: username
+                };
+                socket.send(JSON.stringify(message));
+
+                // Habilitar área de mensajes
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            };
+
+            // Evento de recepción de mensajes
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+
+                // Tipo de mensaje: historial
+                if (data.type === 'history') {
+                    chatContainer.innerHTML = ''; // Limpiar chat
+                    data.messages.forEach(msg => {
+                        addMessageToChat(msg);
+                    });
+                    // Scroll al fondo
+                    scrollToBottom();
+                }
+                // Tipo de mensaje: chat o sistema
+                else {
+                    addMessageToChat(data);
+                    scrollToBottom();
+                }
+            };
+
+            // Evento de cierre de conexión
+            socket.onclose = function (event) {
+                isConnected = false;
+                connectionStatus.textContent = 'Desconectado del servidor';
+                connectionStatus.style.backgroundColor = '#DDD7C5';
+
+                // Deshabilitar área de mensajes
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+
+                // Intentar reconectar después de 5 segundos
+                setTimeout(() => {
+                    connectionStatus.textContent = 'Intentando reconectar...';
+                    connectWebSocket(username);
+                }, 5000);
+            };
+
+            // Evento de error
+            socket.onerror = function (error) {
+                console.error('Error en la conexión WebSocket:', error);
+                connectionStatus.textContent = 'Error de conexión';
+                connectionStatus.style.backgroundColor = '#DDD7C5';
+            };
+        }
+
+        // Función para añadir un mensaje al chat
+        function addMessageToChat(message) {
+            if (message.type === 'system') {
+                // Mensaje del sistema
+                const systemMessage = document.createElement('div');
+                systemMessage.className = 'system-message';
+                systemMessage.textContent = message.content;
+                chatContainer.appendChild(systemMessage);
+            } else {
+                // Mensaje de usuario
+                const messageElement = document.createElement('div');
+                const isMyMessage = message.username === username;
+                messageElement.className = `message ${isMyMessage ? 'my-message' : ''}`;
+
+                // Cabecera con nombre y timestamp
+                const headerElement = document.createElement('div');
+                headerElement.className = 'header';
+
+                if (!isMyMessage) {
+                    const usernameElement = document.createElement('span');
+                    usernameElement.textContent = message.username;
+                    usernameElement.style.color = getUsernameColor(message.username);
+                    headerElement.appendChild(usernameElement);
+                }
+
+                const timestampElement = document.createElement('span');
+                timestampElement.className = 'timestamp';
+                timestampElement.textContent = message.timestamp;
+                headerElement.appendChild(timestampElement);
+
+                messageElement.appendChild(headerElement);
+
+                // Contenido del mensaje
+                const contentElement = document.createElement('div');
+                contentElement.className = 'content';
+                contentElement.textContent = message.content;
+                messageElement.appendChild(contentElement);
+
+                chatContainer.appendChild(messageElement);
+            }
+        }
+
+        // Función para hacer scroll al último mensaje
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Función para generar un color consistente basado en el nombre de usuario
+        function getUsernameColor(username) {
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+            }
+
+            // Asegurarse de que sea un color oscuro para la legibilidad
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 30%)`;
+        }
+
+        // Enviar mensaje
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (content && isConnected) {
+                const message = {
+                    content: content
+                };
+                socket.send(JSON.stringify(message));
+                messageInput.value = '';
+            }
+        }
+
+        // Manejar clic en el botón "Unirse"
+        joinButton.addEventListener('click', () => {
+            username = usernameInput.value.trim();
+            if (username) {
+                usernameModal.style.display = 'none';
+                connectWebSocket(username);
+            } else {
+                // Si no hay nombre, lo dejamos vacío y dejamos que el servidor
+                // asigne un nombre automáticamente (USUARIO_X)
+                username = '';
+                usernameModal.style.display = 'none';
+                connectWebSocket(username);
+            }
+        });
+
+        // También unirse al presionar Enter en el input de nombre
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinButton.click();
+            }
+        });
+
+        // Enviar mensaje al hacer clic en "Enviar"
+        sendButton.addEventListener('click', sendMessage);
+
+        // Enviar mensaje al presionar Enter en el input
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Focus inicial en el input de nombre de usuario
+        usernameInput.focus();
+    </script>
+</body>
+
+</html>
